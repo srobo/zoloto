@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import numpy as np
 from typing import Iterator, NamedTuple, Tuple
 
 from cached_property import cached_property
@@ -108,6 +109,14 @@ RotationMatrix = Tuple[ThreeTuple, ThreeTuple, ThreeTuple]
 class Orientation:
     """The orientation of an object in 3-D space."""
 
+    # The rotation so that (0, 0, 0) in yaw_pitch_roll is a marker facing
+    # directly at the camera, not away
+    __MARKER_ORIENTATION_CORRECTION = Quaternion(matrix=np.array([
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, 0, -1],
+    ]))
+
     def __init__(self, e_x: float, e_y: float, e_z: float):
         """
         Construct a quaternion given the components of a rotation vector.
@@ -115,7 +124,15 @@ class Orientation:
         More information: https://w.wiki/Fci
         """
         rotation_matrix, _ = Rodrigues((e_x, e_y, e_z))
-        self._quaternion = Quaternion(matrix=rotation_matrix)
+        initial_rotation = Quaternion(matrix=rotation_matrix)
+        # Remap axis to get conventional orientation for yaw, pitch & roll
+        # and rotate so that 0 yaw is facing the camera
+        self._quaternion = Quaternion(
+            initial_rotation.w,
+            initial_rotation.z,
+            -initial_rotation.x,
+            initial_rotation.y,
+        ) * self.__MARKER_ORIENTATION_CORRECTION
 
     @property
     def rot_x(self) -> float:
