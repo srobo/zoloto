@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+import numpy as np
 from cached_property import cached_property
 from cv2 import aruco
 from numpy.typing import NDArray
@@ -56,11 +57,8 @@ class BaseMarker(ABC):
 
     @cached_property
     def pixel_centre(self) -> PixelCoordinates:
-        tl, _, br, _ = self.pixel_corners
-        return PixelCoordinates(
-            x=tl.x + (self.size / 2) - 1,
-            y=br.y - (self.size / 2),
-        )
+        centre = np.mean(self._pixel_corners, axis=0)
+        return PixelCoordinates(x=centre[0], y=centre[1])
 
     @cached_property
     def distance(self) -> int:
