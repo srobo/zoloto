@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import math
 import numpy as np
 from typing import Iterator, NamedTuple, Tuple
@@ -121,89 +122,111 @@ class Orientation:
         """
         Construct a quaternion given the components of a rotation vector.
 
-        More information: https://w.wiki/Fci
+        Exposes the principal rotations as attributes.
+
+        More information: https://w.wiki/3FES
         """
         rotation_matrix, _ = Rodrigues((e_x, e_y, e_z))
         initial_rotation = Quaternion(matrix=rotation_matrix)
         # Remap axis to get conventional orientation for yaw, pitch & roll
         # and rotate so that 0 yaw is facing the camera
-        self._quaternion = Quaternion(
+        quaternion = Quaternion(
             initial_rotation.w,
             initial_rotation.z,
             -initial_rotation.x,
             initial_rotation.y,
         ) * self.__MARKER_ORIENTATION_CORRECTION
 
+        if os.environ.get('ZOLOTO_LEGACY_AXIS'):
+            self._quaternion = initial_rotation
+        else:
+            self._quaternion = quaternion
+
+        self._yaw_pitch_roll = quaternion.yaw_pitch_roll
+
     @property
     def rot_x(self) -> float:
         """
         Get rotation angle around X axis in radians.
 
-        The X axis is horizontal relative to the camera's perspective, i.e: left
-        & right within the frame of the image.
+        Conventional: The roll rotation with zero as the April Tags marker
+                      reference point at the top left of the marker.
 
-        Increasing values represent an increasing clockwise rotation of the
-        marker as seen from the camera's left.
+        Legacy: The inverted pitch rotation with zero as the marker facing
+                directly away from the camera and a positive rotation being
+                downward.
 
-        Zero values for April Tags markers have the marker facing away from the
-        camera. The practical effect of this is that an April Tags marker facing
-        the camera square-on will have a value of ``pi`` (or equivalently
-        ``-pi``) and the value will decrease as the marker diverges from
-        square-on.
-
-        For observed markers positive values therefore indicate a rotation of
-        the top of the marker away from the camera, such that marker could be
-        said to be leaning backwards, with the value decreasing as the marker
-        leans back further.
+                The practical effect of this is that an April Tags marker
+                facing the camera square-on will have a value of ``pi`` (or
+                equivalently ``-pi``).
         """
-        return self.roll
+        return self.yaw_pitch_roll[2]
 
     @property
     def rot_y(self) -> float:
         """
         Get rotation angle around Y axis in radians.
 
-        The Y axis is vertical relative to the camera's perspective, i.e: up &
-        down within the frame of the image.
+        Conventional: The pitch rotation with zero as the marker facing the
+                      camera square-on and a positive rotation being upward.
 
-        Positive values indicate a rotation of an observed marker towards the
-        camera's right. This is a rotation of the marker counter-clockwise about
-        the Y axis as seen from above the marker.
-
-        Zero values for April Tags markers have the marker facing the camera
-        square-on.
+        Legacy: The inverted yaw rotation with zero as the marker facing the
+                camera square-on and a positive rotation being
+                counter-clockwise.
         """
-        return self.pitch
+        return self.yaw_pitch_roll[1]
 
     @property
     def rot_z(self) -> float:
         """
         Get rotation angle around Z axis in radians.
 
-        The Z axis extends directly away from the camera.
+        Conventional: The yaw rotation with zero as the marker facing the
+                      camera square-on and a positive rotation being clockwise.
 
-        Positive values indicate a rotation counter-clockwise from the
-        perspective of the camera.
-
-        Zero values for April Tags markers have the marker reference point at
-        the top left.
+        Legacy: The roll rotation with zero as the marker facing the camera
+                square-on and a positive rotation being clockwise.
         """
-        return self.yaw
-
-    @property
-    def yaw(self) -> float:
-        """Get rotation angle around z axis in radians."""
         return self.yaw_pitch_roll[0]
 
     @property
+    def yaw(self) -> float:
+        """
+        Get yaw of the marker, a rotation about the vertical axis, in radians.
+
+        Positive values indicate a rotation clockwise from the perspective of
+        the marker.
+
+        Zero values have the marker facing the camera square-on.
+        """
+        return self._yaw_pitch_roll[0]
+
+    @property
     def pitch(self) -> float:
-        """Get rotation angle around y axis in radians."""
-        return self.yaw_pitch_roll[1]
+        """
+        Get pitch of the marker, a rotation about the transverse axis, in
+        radians.
+
+        Positive values indicate a rotation upwards from the perspective of the
+        marker.
+
+        Zero values have the marker facing the camera square-on.
+        """
+        return self._yaw_pitch_roll[1]
 
     @property
     def roll(self) -> float:
-        """Get rotation angle around x axis in radians."""
-        return self.yaw_pitch_roll[2]
+        """
+        Get roll of the marker, a rotation about the longitudinal axis, in
+        radians.
+
+        Positive values indicate a rotation clockwise from the perspective of
+        the marker.
+
+        Zero values have the have April Tags marker reference point at the top
+        left of the marker.
+        """
+        return self._yaw_pitch_roll[2]
 
     @cached_property
     def yaw_pitch_roll(self) -> ThreeTuple:
