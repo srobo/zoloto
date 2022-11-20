@@ -1,3 +1,10 @@
+"""
+Contructs to convert the R and t vectors into other coordinate systems.
+
+Setting the environment variable ZOLOTO_LEGACY_AXIS uses the axis that were
+used up to version 0.9.0. Otherwise the conventional right-handed axis is used
+where x is forward, y is left and z is upward.
+"""
 from __future__ import annotations
 
 import os
