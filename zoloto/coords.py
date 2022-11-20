@@ -132,7 +132,7 @@ class Orientation:
         # and rotate so that 0 yaw is facing the camera
         quaternion = Quaternion(
             initial_rotation.w,
-            initial_rotation.z,
+            -initial_rotation.z,
             -initial_rotation.x,
             initial_rotation.y,
         ) * self.__MARKER_ORIENTATION_CORRECTION
