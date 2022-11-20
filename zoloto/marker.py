@@ -74,7 +74,7 @@ class BaseMarker(ABC):
 
     @property
     def cartesian(self) -> CartesianCoordinates:
-        return CartesianCoordinates(*self._tvec.tolist())
+        return CartesianCoordinates.from_tvec(*self._tvec.tolist())
 
     @property
     def _rvec(self) -> NDArray:

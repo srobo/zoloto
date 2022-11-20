@@ -27,8 +27,21 @@ class PixelCoordinates(NamedTuple):
 
 class CartesianCoordinates(NamedTuple):
     """
-    Cartesian coordinates, rotated on their side.
+    Conventional:
+    The X axis extends directly away from the camera. Zero is at the camera.
+    Increasing values indicate greater distance from the camera.
 
+    The Y axis is horizontal relative to the camera's perspective, i.e: right
+    to left within the frame of the image. Zero is at the centre of the image.
+    Increasing values indicate greater distance to the left.
+
+    The Z axis is vertical relative to the camera's perspective, i.e: down to
+    up within the frame of the image. Zero is at the centre of the image.
+    Increasing values indicate greater distance above the centre of the image.
+
+    More information: https://w.wiki/5zbE
+
+    Legacy:
     The X axis is horizontal relative to the camera's perspective, i.e: left &
     right within the frame of the image. Zero is at the centre of the image.
     Increasing values indicate greater distance to the right.
@@ -51,6 +64,17 @@ class CartesianCoordinates(NamedTuple):
     x: float
     y: float
     z: float
+
+    @classmethod
+    def from_tvec(cls, x: float, y: float, z: float) -> CartesianCoordinates:
+        if os.environ.get('ZOLOTO_LEGACY_AXIS'):
+            return CartesianCoordinates(
+                x=x, y=y, z=z,
+            )
+        else:
+            return CartesianCoordinates(
+                x=z, y=-x, z=-y,
+            )
 
 
 class SphericalCoordinates(NamedTuple):
@@ -110,7 +134,7 @@ RotationMatrix = Tuple[ThreeTuple, ThreeTuple, ThreeTuple]
 class Orientation:
     """The orientation of an object in 3-D space."""
 
-    # The rotation so that (0, 0, 0) in yaw_pitch_roll is a marker facing
+    # The rotation so that (0, 0, 0) in _yaw_pitch_roll is a marker facing
     # directly at the camera, not away
     __MARKER_ORIENTATION_CORRECTION = Quaternion(matrix=np.array([
         [-1, 0, 0],
