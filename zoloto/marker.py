@@ -70,7 +70,7 @@ class BaseMarker(ABC):
 
     @cached_property
     def spherical(self) -> SphericalCoordinates:
-        return SphericalCoordinates.from_cartesian(self.cartesian)
+        return SphericalCoordinates.from_tvec(*self._tvec.tolist())
 
     @property
     def cartesian(self) -> CartesianCoordinates:

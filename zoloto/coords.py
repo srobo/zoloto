@@ -79,24 +79,20 @@ class CartesianCoordinates(NamedTuple):
 
 class SphericalCoordinates(NamedTuple):
     """
-    SphericalCoordinates coordinates, rotated onto their side.
+    The convential spherical coordinate in mathematical notation where θ is
+    a rotation around the vertical axis and φ is measured as the angle from
+    the vertical axis.
 
-    This is comparable to the ISO convention for spherical coordinates, applied
-    to our rotated axes. Here θ is measured down from the y-axis (rather than
-    the usual z-axis) while φ is measured around the y-axis.
-
-    See https://en.wikipedia.org/wiki/Spherical_coordinate_system and
-    https://studentrobotics.org/docs/programming/sr/vision/#SphericalCoordinates.
+    More information: https://mathworld.wolfram.com/SphericalCoordinates.html
 
     :param float distance: Radial distance from the origin.
-    :param float theta: Polar angle, θ, in radians. This is the angle "down"
-        from the y-axis to the vector which points to the location. For points
-        with zero cartesian x-coordinate value, this can be viewed as the
-        rotation about the x-axis. Zero is on the positive y-axis.
-    :param float phi: Azimuth angle, φ, in radians. This is the angle from the
-        x-axis around the polar (y-axis) to the projection of the point on the
-        x-z plane. This can be viewed as rotation about the y-axis. Zero is at
-        the centre of the image.
+    :param float theta: Azimuth angle, θ, in radians. This is the angle from
+        directly in front of the camera to the vector which points to the
+        location in the horizontal plane. A positive value indicates a
+        counter-clockwise rotation. Zero is at the centre of the image.
+    :param float phi: Polar angle, φ, in radians. This is the angle "down"
+        from the vertical axis to the vector which points to the location.
+        Zero is directly upward.
     """
 
     distance: int
@@ -105,25 +101,65 @@ class SphericalCoordinates(NamedTuple):
 
     @property
     def rot_x(self) -> float:
-        """Approximate rotation around the x-axis, an alias for ``self.theta``."""
-        return self.theta
+        """
+        Rotation around the x-axis.
+
+        Conventional:  This is unused.
+
+        Legacy: A rotation up to down around the camera, in radians. Values
+                increase as the marker moves towards the bottom of the image.
+                A zero value is halfway up the image.
+        """
+        if os.environ.get('ZOLOTO_LEGACY_AXIS'):
+            return self.phi - (math.pi / 2)
+        else:
+            raise AttributeError("Rotation around this axis is not used")
 
     @property
     def rot_y(self) -> float:
-        """Rotation around the y-axis, an alias for ``self.phi``."""
-        return self.phi
+        """
+        Rotation around the y-axis.
+
+        Conventional: A rotation up to down around the camera, in radians.
+                      Values increase as the marker moves towards the bottom
+                      of the image. A zero value is halfway up the image.
+
+        Legacy: A rotation left to right around the camera, in radians. Values
+                increase as the marker moves towards the right of the image.
+                A zero value is on the centerline of the image.
+        """
+        if os.environ.get('ZOLOTO_LEGACY_AXIS'):
+            return -self.theta
+        else:
+            return self.phi - (math.pi / 2)
+
+    @property
+    def rot_z(self) -> float:
+        """
+        Rotation around the z-axis.
+
+        Conventional: A rotation right to left around the camera, in radians.
+                      Values increase as the marker moves towards the left of
+                      the image. A zero value is on the centerline of the
+                      image.
+
+        Legacy: This is unused.
+        """
+        if os.environ.get('ZOLOTO_LEGACY_AXIS'):
+            raise AttributeError("Rotation around this axis is not used")
+        else:
+            return self.theta
+
 
     @classmethod
-    def from_cartesian(cls, cartesian: CartesianCoordinates) -> SphericalCoordinates:
-        if not any(cartesian):
-            return SphericalCoordinates(0, 0, 0)
-
-        distance = math.sqrt(sum(x**2 for x in cartesian))
-        x, y, z = cartesian
+    def from_tvec(cls, x: float, y: float, z: float) -> SphericalCoordinates:
+        distance = math.hypot(x, y, z)
+        # convert to conventional right-handed axis
+        _x, _y, _z = z, -x, -y
         return SphericalCoordinates(
             distance=int(distance),
-            theta=math.acos(y / distance),
-            phi=math.atan2(z, x),
+            theta=math.atan2(_y, _x),
+            phi = math.acos(_z / distance),
         )
 
 
