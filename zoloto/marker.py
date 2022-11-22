@@ -3,15 +3,20 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+import numpy as np
 from cached_property import cached_property
 from cv2 import aruco
-from numpy import arctan2, linalg
 from numpy.typing import NDArray
 
 from zoloto.utils import cached_method
 
 from .calibration import CalibrationParameters
-from .coords import Coordinates, Orientation, Spherical, ThreeDCoordinates
+from .coords import (
+    CartesianCoordinates,
+    Orientation,
+    PixelCoordinates,
+    SphericalCoordinates,
+)
 from .exceptions import MissingCalibrationsError
 from .marker_type import MarkerType
 
@@ -45,35 +50,31 @@ class BaseMarker(ABC):
         return self.__marker_type
 
     @property
-    def pixel_corners(self) -> list[Coordinates]:
-        return [Coordinates(x=float(x), y=float(y)) for x, y in self._pixel_corners]
+    def pixel_corners(self) -> list[PixelCoordinates]:
+        return [
+            PixelCoordinates(x=float(x), y=float(y)) for x, y in self._pixel_corners
+        ]
 
     @cached_property
-    def pixel_centre(self) -> Coordinates:
-        tl, _, br, _ = self.pixel_corners
-        return Coordinates(
-            x=tl.x + (self.size / 2) - 1,
-            y=br.y - (self.size / 2),
-        )
+    def pixel_centre(self) -> PixelCoordinates:
+        centre = np.mean(self._pixel_corners, axis=0)
+        return PixelCoordinates(x=centre[0], y=centre[1])
 
     @cached_property
     def distance(self) -> int:
-        return int(linalg.norm(self._tvec))
+        return self.spherical.distance
 
     @cached_property
     def orientation(self) -> Orientation:
         return Orientation(*self._rvec)
 
     @cached_property
-    def spherical(self) -> Spherical:
-        x, y, z = self._tvec
-        return Spherical(
-            rot_x=float(arctan2(y, z)), rot_y=float(arctan2(x, z)), dist=self.distance
-        )
+    def spherical(self) -> SphericalCoordinates:
+        return SphericalCoordinates.from_tvec(*self._tvec.tolist())
 
     @property
-    def cartesian(self) -> ThreeDCoordinates:
-        return ThreeDCoordinates(*self._tvec.tolist())
+    def cartesian(self) -> CartesianCoordinates:
+        return CartesianCoordinates.from_tvec(*self._tvec.tolist())
 
     @property
     def _rvec(self) -> NDArray:
