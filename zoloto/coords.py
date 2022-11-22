@@ -120,7 +120,7 @@ class SphericalCoordinates(NamedTuple):
         if os.environ.get('ZOLOTO_LEGACY_AXIS'):
             return self.phi - (math.pi / 2)
         else:
-            raise AttributeError("Rotation around this axis is not used")
+            raise AttributeError("That axis is not available in the selected coordinate system.")
 
     @property
     def rot_y(self) -> float:
@@ -153,7 +153,7 @@ class SphericalCoordinates(NamedTuple):
         Legacy: This is unused.
         """
         if os.environ.get('ZOLOTO_LEGACY_AXIS'):
-            raise AttributeError("Rotation around this axis is not used")
+            raise AttributeError("That axis is not available in the selected coordinate system.")
         else:
             return self.theta
 
